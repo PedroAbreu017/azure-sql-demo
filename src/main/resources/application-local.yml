@@ -1,0 +1,45 @@
+# application-local.yml - CONFIGURAÇÃO FUNCIONAL
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driverClassName: org.h2.Driver
+    username: sa
+    password: 
+  
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  
+  h2:
+    console:
+      enabled: true
+  
+  flyway:
+    enabled: false
+
+server:
+  port: 8080
+
+# Configurações JWT necessárias
+app:
+  jwt:
+    secret: mySecretKey123ForLocalDevelopmentOnlyNotForProduction
+    expiration: 86400000
+    refresh-expiration: 604800000
+
+# Configurações Azure (mock para desenvolvimento local)
+azure:
+  keyvault:
+    uri: https://fake-keyvault-for-local-dev.vault.azure.net/
+  client:
+    id: fake-client-id-for-local-dev
+    secret: fake-client-secret-for-local-dev
+  tenant:
+    id: fake-tenant-id-for-local-dev
+
+logging:
+  level:
+    root: INFO
+    com.example.azure_sql_demo: DEBUG

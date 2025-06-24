@@ -1,17 +1,29 @@
+# Dockerfile com multi-stage build - CORRIGIDO para Flyway
+FROM eclipse-temurin:17-jdk-alpine AS build
+
+WORKDIR /app
+
+# Copiar arquivos do Maven
+COPY pom.xml .
+COPY src ./src
+
+# Instalar Maven e compilar
+RUN apk add --no-cache maven
+RUN mvn clean package -DskipTests
+
+# Stage 2: Runtime
 FROM eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
 
-# Copiar o arquivo JAR da sua aplicação
-COPY target/azure-sql-demo-0.0.1-SNAPSHOT.jar app.jar
+# Copiar o JAR do stage anterior
+COPY --from=build /app/target/azure-sql-demo-0.0.1-SNAPSHOT.jar app.jar
 
-# Configurações do Azure Key Vault
-ENV AZURE_KEYVAULT_URI=https://java-sql-demo-kv-2025.vault.azure.net/
-ENV AZURE_LOG_LEVEL=3
-ENV AZURE_POD_IDENTITY_AUTHORITY_HOST=http://169.254.169.254
+# IMPORTANTE: NÃO PRECISA COPIAR MANUALMENTE - JAR já contém resources!
+# O JAR já tem todos os arquivos db/migration dentro de BOOT-INF/classes/
 
-# Porta exposta pela aplicação
+# Expor porta
 EXPOSE 8080
 
-# Comando para executar a aplicação
+# Executar aplicação
 ENTRYPOINT ["java", "-jar", "app.jar"]

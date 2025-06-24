@@ -1,0 +1,57 @@
+package com.example.azure_sql_demo.config;
+
+import org.flywaydb.core.Flyway;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+
+import jakarta.annotation.PostConstruct;
+import javax.sql.DataSource;
+
+@Configuration
+@Profile("docker") // Apenas para perfil docker (SQL Server)
+public class FlywayMigrationConfig {
+
+    @Autowired
+    private DataSource dataSource;
+
+    @PostConstruct
+    public void migrateFlyway() {
+        try {
+            System.out.println("🚀 Iniciando migrações Flyway para SQL Server...");
+            
+            Flyway flyway = Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .baselineOnMigrate(true)
+                .validateOnMigrate(true)
+                .outOfOrder(false)
+                .cleanDisabled(false)
+                .load();
+
+            // Informações sobre migrações
+            var info = flyway.info();
+            System.out.println("📊 Status das migrações:");
+            for (var migration : info.all()) {
+                System.out.println("  - " + migration.getVersion() + ": " + migration.getDescription() + " [" + migration.getState() + "]");
+            }
+
+            // Executar migrações
+            var result = flyway.migrate();
+            System.out.println("✅ Flyway executado com sucesso! " + result.migrationsExecuted + " migrações aplicadas.");
+            
+            // Mostrar migrações aplicadas
+            if (result.migrationsExecuted > 0) {
+                System.out.println("📋 Migrações aplicadas:");
+                for (var output : result.warnings) {
+                    System.out.println("  ⚠️ " + output);
+                }
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Erro no Flyway: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Falha na migração do banco de dados", e);
+        }
+    }
+}

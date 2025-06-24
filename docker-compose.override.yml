@@ -1,0 +1,12 @@
+# docker-compose.override.yml - apenas o essencial
+
+services:
+  # Desabilitar serviços problemáticos
+  prometheus:
+    profiles: ["monitoring"]
+  
+  grafana:
+    profiles: ["monitoring"]
+    
+  jaeger:
+    profiles: ["monitoring"]

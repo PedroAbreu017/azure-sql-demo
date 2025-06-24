@@ -1,0 +1,154 @@
+
+services:
+  # 🗄️ SQL Server
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: azure-sql-demo-db
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=V@ilos9597
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U SA -P 'V@ilos9597' -C -Q 'SELECT 1'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # 🏢 ENTERPRISE: Init Container
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: azure-sql-demo-db-init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    command: |
+      /bin/bash -c "
+        echo '🏢 ENTERPRISE: Iniciando criação do banco...'
+        echo '⏳ Aguardando SQL Server estar completamente pronto...'
+        sleep 10
+        
+        echo '📊 Conectando no SQL Server para criar banco...'
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U SA -P 'V@ilos9597' -C -Q \"
+        IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'azure_sql_demo')
+        BEGIN
+            CREATE DATABASE azure_sql_demo
+            ON (
+                NAME = 'azure_sql_demo_data',
+                FILENAME = '/var/opt/mssql/data/azure_sql_demo.mdf',
+                SIZE = 100MB,
+                MAXSIZE = 1GB,
+                FILEGROWTH = 10MB
+            )
+            LOG ON (
+                NAME = 'azure_sql_demo_log',
+                FILENAME = '/var/opt/mssql/data/azure_sql_demo.ldf',
+                SIZE = 10MB,
+                MAXSIZE = 100MB,
+                FILEGROWTH = 5MB
+            );
+            PRINT '✅ Banco azure_sql_demo criado com sucesso!';
+        END
+        ELSE
+        BEGIN
+            PRINT '✅ Banco azure_sql_demo já existe';
+        END
+        \"
+        
+        echo '🎯 ENTERPRISE: Configurando banco para performance...'
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U SA -P 'V@ilos9597' -C -Q \"
+        USE azure_sql_demo;
+        ALTER DATABASE azure_sql_demo SET RECOVERY SIMPLE;
+        ALTER DATABASE azure_sql_demo SET AUTO_UPDATE_STATISTICS ON;
+        ALTER DATABASE azure_sql_demo SET AUTO_CREATE_STATISTICS ON;
+        ALTER DATABASE azure_sql_demo SET AUTO_SHRINK OFF;
+        ALTER DATABASE azure_sql_demo SET AUTO_CLOSE OFF;
+        PRINT '🎯 Configurações enterprise aplicadas!';
+        \"
+        
+        echo '🎉 ENTERPRISE: Banco pronto para migrações!'
+      "
+    networks:
+      - app-network
+    restart: "no"
+
+  # 📋 ENTERPRISE: Database Migrations - SOLUÇÃO 1 (ARRAY SYNTAX)
+  db-migrator:
+    image: flyway/flyway:10-alpine
+    container_name: azure-sql-demo-migrator
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    command: 
+      - migrate
+      - -url=jdbc:sqlserver://sqlserver:1433;databaseName=azure_sql_demo;encrypt=false;trustServerCertificate=true
+      - -user=SA
+      - -password=V@ilos9597
+    volumes:
+      - ./src/main/resources/db/migration:/flyway/sql
+    networks:
+      - app-network
+    restart: "no"
+
+  # 🚀 Redis
+  redis:
+    image: redis:7-alpine
+    container_name: azure-sql-demo-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 🚀 Aplicação
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: azure-sql-demo-app
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - JAVA_OPTS=-Xmx512m -Xms256m
+      - DB_HOST=sqlserver
+      - DB_PORT=1433
+      - DB_NAME=azure_sql_demo
+      - DB_USER=SA
+      - DB_PASSWORD=V@ilos9597
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      db-migrator:
+        condition: service_completed_successfully
+    restart: on-failure
+    networks:
+      - app-network
+
+volumes:
+  sqlserver_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
+    name: azure-sql-demo-network
