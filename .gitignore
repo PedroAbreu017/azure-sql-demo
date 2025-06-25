@@ -1,77 +1,60 @@
-HELP.md
+# Maven
 target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-src/main/java/com/example/azure_sql_demo/config/KeyVaultConfig.java
+*.class
+*.jar
+*.war
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+# Wrapper
+.mvn/
+!mvnw
+!mvnw.cmd
 
-### IntelliJ IDEA ###
-.idea
-*.iws
+# Logs
+*.log
+logs/
+
+# Configs e segredos
+*.env
+.env*
+secrets/
+application-*.properties
+**/KeyVaultConfig*.java
+
+# IDEs
+.vscode/
+.idea/
 *.iml
 *.ipr
+*.iws
+.classpath
+.project
+.factorypath
+.settings/
+.sts4-cache/
+.apt_generated/
 
-### NetBeans ###
+# NetBeans
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
+
+# Build tools
 build/
-!**/src/main/**/build/
-!**/src/test/**/build/
 
-### VS Code ###
-.vscode/
-.qodo
-
-# Azure SQL Demo - Git Ignore
-
-# Secrets e configurações sensíveis
-secrets/
-.env
-*.env
-application-local.properties
-application-prod.properties
-
-# Logs
-logs/
-*.log
-
-# Docker volumes
-docker-volumes/
-
-# IDE
-.vscode/
-.idea/
-*.iml
-
-# Maven
-target/
-!.mvn/wrapper/maven-wrapper.jar
-
-# Spring Boot
-*.jar
-*.war
-
-# OS
+# OS files
 .DS_Store
 Thumbs.db
+
+# Docker
+docker-volumes/
+docker-logs.txt
 
 # Azure
 .azure/
 
-# Temporary files
+# Arquivos temporários
 *.tmp
 *.bak
 *.swp
-
