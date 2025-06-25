@@ -1,0 +1,184 @@
+# application-docker.yml - Enterprise Configuration (Corrigida)
+spring:
+  datasource:
+    url: jdbc:sqlserver://sqlserver:1433;databaseName=AzureSQLDemo;encrypt=true;trustServerCertificate=true;loginTimeout=30;
+    username: azure_demo_user
+    password: ${DB_PASSWORD}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      validation-timeout: 5000
+      max-lifetime: 900000
+      leak-detection-threshold: 60000
+  
+  jpa:
+    database-platform: org.hibernate.dialect.SQLServerDialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        generate_statistics: false
+  
+  # Flyway configuration (corrigida - enabled removido por ser deprecated)
+  flyway:
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+    clean-disabled: true
+    schemas: dbo
+    # enabled foi removido - Flyway é habilitado automaticamente quando está no classpath
+  
+  data:
+    redis:
+      host: redis
+      port: 6379
+      password: ${REDIS_PASSWORD}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
+  
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000
+      cache-null-values: false
+  
+  # OAuth2 configuration atualizada para Spring Boot 3.x
+  security:
+    oauth2:
+      client:
+        registration:
+          azure:
+            client-id: ${AZURE_CLIENT_ID}
+            client-secret: ${AZURE_CLIENT_SECRET}
+            scope: openid,profile,email
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          azure:
+            issuer-uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/v2.0
+            authorization-uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/authorize
+            token-uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token
+            user-info-uri: https://graph.microsoft.com/v1.0/me
+            jwk-set-uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/discovery/v2.0/keys
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+    connection-timeout: 20000
+    max-connections: 8192
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+    min-response-size: 1024
+
+# Management endpoints (Spring Boot 3.x format)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,flyway
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+  # Prometheus é habilitado automaticamente quando micrometer-registry-prometheus está presente
+  # Não há mais necessidade de management.prometheus.metrics.export.enabled
+
+# Application specific configurations
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration: 86400000 # 24 hours
+    refresh-expiration: 604800000 # 7 days
+  
+  security:
+    cors:
+      allowed-origins: 
+        - http://localhost:3000
+        - http://localhost:8080
+        - https://*.azurewebsites.net
+      allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+      allowed-headers: "*"
+      allow-credentials: true
+      max-age: 3600
+  
+  azure:
+    keyvault:
+      uri: ${AZURE_KEYVAULT_URI}
+    client:
+      id: ${AZURE_CLIENT_ID}
+      secret: ${AZURE_CLIENT_SECRET}
+    tenant:
+      id: ${AZURE_TENANT_ID}
+  
+  redis:
+    session:
+      timeout: 3600
+    cache:
+      default-ttl: 3600
+  
+  # Rate limiting configuration
+  rate-limit:
+    default:
+      requests: 100
+      window: 60
+    auth:
+      requests: 10
+      window: 60
+    transactions:
+      requests: 50
+      window: 60
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    com.example.azure_sql_demo: DEBUG
+    org.springframework.security: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    com.microsoft.sqlserver: INFO
+    org.flywaydb: INFO
+    redis.clients: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /app/logs/azure-sql-demo.log
+    max-size: 100MB
+    max-history: 30
+
+# Spring Boot 3.x specific configurations
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true

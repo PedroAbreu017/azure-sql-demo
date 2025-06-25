@@ -1,0 +1,77 @@
+HELP.md
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+src/main/java/com/example/azure_sql_demo/config/KeyVaultConfig.java
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+.qodo
+
+# Azure SQL Demo - Git Ignore
+
+# Secrets e configurações sensíveis
+secrets/
+.env
+*.env
+application-local.properties
+application-prod.properties
+
+# Logs
+logs/
+*.log
+
+# Docker volumes
+docker-volumes/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Spring Boot
+*.jar
+*.war
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Azure
+.azure/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+

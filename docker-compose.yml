@@ -1,0 +1,114 @@
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: azure-sql-demo-db
+    hostname: sqlserver
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD_FILE=/run/secrets/db_sa_password
+      - MSSQL_PID=Enterprise
+      - MSSQL_AGENT_ENABLED=true
+      - MSSQL_ENABLE_HADR=1
+    secrets:
+      - db_sa_password
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - azure-sql-demo-network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P $$(cat /run/secrets/db_sa_password) -Q 'SELECT 1' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: azure-sql-demo-redis
+    hostname: redis
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD_FILE=/run/secrets/redis_password
+    secrets:
+      - redis_password
+    volumes:
+      - redis_data:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - azure-sql-demo-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass-file /run/secrets/redis_password
+
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: azure-sql-demo-app
+    hostname: app
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - JAVA_OPTS=-Xmx512m -Xms256m
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,metrics,prometheus
+    secrets:
+      - db_password
+      - jwt_secret
+      - redis_password
+      - azure_client_secret
+    volumes:
+      - app_logs:/app/logs
+    networks:
+      - azure-sql-demo-network
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+networks:
+  azure-sql-demo-network:
+    driver: bridge
+    name: azure-sql-demo-network
+
+volumes:
+  sqlserver_data:
+    driver: local
+    name: azure-sql-demo-sqlserver-data
+  redis_data:
+    driver: local
+    name: azure-sql-demo-redis-data
+  app_logs:
+    driver: local
+    name: azure-sql-demo-app-logs
+
+secrets:
+  db_sa_password:
+    file: ./secrets/db_sa_password.txt
+  db_password:
+    file: ./secrets/db_password.txt
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  redis_password:
+    file: ./secrets/redis_password.txt
+  azure_client_secret:
+    file: ./secrets/azure_client_secret.txt

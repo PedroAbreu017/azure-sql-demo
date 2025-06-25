@@ -1,0 +1,24 @@
+package com.example.azure_sql_demo.config;
+
+import org.springframework.boot.jdbc.DataSourceBuilder;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+
+import javax.sql.DataSource;
+
+@Configuration
+public class KeyVaultConfigTemplate {
+    // Renomeie este arquivo para KeyVaultConfig.java e atualize as credenciais
+    @Bean
+    @Primary
+    public DataSource dataSource() {
+        return DataSourceBuilder
+            .create()
+            .url("jdbc:sqlserver://your-server.database.windows.net:1433;database=your-db;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;")
+            .username("your-username")
+            .password("your-password")
+            .driverClassName("com.microsoft.sqlserver.jdbc.SQLServerDriver")
+            .build();
+    }
+}

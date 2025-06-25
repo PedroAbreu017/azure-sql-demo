@@ -1,0 +1,65 @@
+﻿# application-local.yml - Configuração Local com Variáveis de Ambiente
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driverClassName: org.h2.Driver
+    username: sa
+    password: 
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    defer-datasource-initialization: true
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+  redis:
+    enabled: false
+
+# Application specific configurations
+app:
+  jwt:
+    # Usar variável de ambiente JWT_SECRET
+    secret: ${JWT_SECRET:myVerySecureSecretKeyForJWTTokenGeneration2024LocalDevelopment}
+    expiration: 86400000     # 24 horas
+    refresh-expiration: 604800000  # 7 dias
+     
+  # CORS Configuration for local development
+  security:
+    cors:
+      allowed-origins: 
+        - http://localhost:3000
+        - http://localhost:8080
+        - http://localhost:4200
+      allowed-methods: 
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      allowed-headers: "*"
+      allow-credentials: true
+      max-age: 3600
+
+# Azure configuration - Usando variáveis de ambiente
+azure:
+  keyvault:
+    uri: ${AZURE_KEYVAULT_URI:https://mock-keyvault.vault.azure.net/}
+  client:
+    id: ${AZURE_CLIENT_ID:00000000-0000-0000-0000-000000000000}
+    secret: ${AZURE_CLIENT_SECRET:mock-secret-for-local-dev}
+  tenant:
+    id: ${AZURE_TENANT_ID:11111111-1111-1111-1111-111111111111}
+
+logging:
+  level:
+    com.example.azure_sql_demo: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
